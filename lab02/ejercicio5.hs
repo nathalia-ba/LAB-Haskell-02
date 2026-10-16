@@ -29,29 +29,35 @@ vecinos (a, b) =
     ]
 
 heuristica :: Estado -> Costo
-heuristica (a, _) = abs (4 - a)
+heuristica _ = 0
 
 aStar :: (Nodo -> [(Nodo, Costo)])
       -> (Nodo -> Costo)
       -> Nodo
       -> Nodo
       -> [(Nodo, Costo)]
-aStar sucesores heuristica inicio meta = buscar [(inicio, 0)] []
+aStar sucesores heuristica inicio meta =
+    buscar [(inicio, 0, [(inicio, 0)])] []
   where
     buscar [] _ = []
-    buscar ((nodo, costo):cola) visitados
-        | nodo == meta = [(nodo, costo)]
+
+    buscar ((nodo, costo, camino):cola) visitados
+        | nodo == meta = camino
         | nodo `elem` visitados = buscar cola visitados
         | otherwise =
             let nuevos =
-                    [ (v, costo + c)
+                    [ (v, costo + c, camino ++ [(v, costo + c)])
                     | (v, c) <- sucesores nodo
-                    , v `notElem` visitados
                     , v /= nodo
+                    , v `notElem` visitados
+                    , v `notElem` map fst camino
                     ]
+
                 ordenados =
-                    sortOn (\(v, c) -> c + heuristica v) (cola ++ nuevos)
-            in (nodo, costo) : buscar ordenados (nodo : visitados)
+                    sortOn (\(v, g, _) -> g + heuristica v)
+                    (cola ++ nuevos)
+
+            in buscar ordenados (nodo : visitados)
 
 solucion :: [(Estado, Costo)]
 solucion = aStar vecinos heuristica (0, 0) (4, 0)
